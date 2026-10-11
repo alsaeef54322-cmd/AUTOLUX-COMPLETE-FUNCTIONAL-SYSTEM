@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <script>
+      (function() {
+        // Intercept and suppress external extension errors
+        try {
+          var originalOnError = window.onerror;
+          window.onerror = function(msg, url, lineNo, columnNo, error) {
+            var sMsg = String(msg || '');
+            var sUrl = String(url || '');
+            var sErr = error && error.message ? String(error.message) : '';
+            if (
+              sUrl.indexOf('chrome-extension://') !== -1 ||
+              sMsg.indexOf('Cannot set property fetch') !== -1 ||
+              sErr.indexOf('Cannot set property fetch') !== -1
+            ) {
+              return true;
+            }
+            if (typeof originalOnError === 'function') {
+              return originalOnError.apply(this, arguments);
+            }
+          };
+
+          window.addEventListener('error', function(event) {
+            var msg = event ? String(event.message || (event.error && event.error.message) || '') : '';
+            var file = event ? String(event.filename || '') : '';
+            if (
+              file.indexOf('chrome-extension://') !== -1 ||
+              msg.indexOf('Cannot set property fetch') !== -1
+            ) {
+              if (event.preventDefault) event.preventDefault();
+              if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+              return true;
+            }
+          }, true);
+        } catch (_) {}
+
+        // Ensure window.fetch has both getter and setter on window and prototype chain
+        try {
+          var win = window;
+          var curFetch = typeof win.fetch === 'function' ? win.fetch.bind(win) : win.fetch;
+
+          function installFetchAccessor(obj) {
+            if (!obj || obj === Object.prototype) return;
+            try {
+              var desc = Object.getOwnPropertyDescriptor(obj, 'fetch');
+              if (desc && desc.configurable === false && desc.writable === false) {
+                return;
+              }
+              Object.defineProperty(obj, 'fetch', {
+                configurable: true,
+                enumerable: true,
+                get: function() {
+                  return curFetch;
+                },
+                set: function(fn) {
+                  curFetch = fn;
+                }
+              });
+            } catch (_) {}
+          }
+
+          var target = win;
+          while (target && target !== Object.prototype) {
+            installFetchAccessor(target);
+            target = Object.getPrototypeOf ? Object.getPrototypeOf(target) : null;
+          }
+          installFetchAccessor(win);
+        } catch (_) {}
+      })();
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AutoCare Pro — Premium Automotive Workshop Management ERP</title>
+    <meta name="description" content="Enterprise automotive mechanical maintenance center ERP for premium workshops in New Cairo. Quick reception, work orders, parts inventory, billing, inspections and reports." />
+    <meta property="og:title" content="AutoCare Pro — Premium Automotive Workshop Management ERP" />
+    <meta property="og:description" content="Enterprise automotive mechanical maintenance center ERP for premium workshops in New Cairo. Quick reception, work orders, parts inventory, billing, inspections and reports." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Tajawal:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-slate-950 text-slate-100 antialiased selection:bg-blue-600 selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

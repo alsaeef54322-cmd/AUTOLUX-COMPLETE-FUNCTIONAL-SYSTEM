@@ -1,0 +1,6 @@
+{
+  "name": "AutoCare Pro",
+  "description": "Premium Automotive Service Center Management ERP for high-end mechanical workshops in New Cairo. Features quick reception, full work order lifecycle, inspections, parts inventory, financial billing, Arabic RTL & English LTR.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
