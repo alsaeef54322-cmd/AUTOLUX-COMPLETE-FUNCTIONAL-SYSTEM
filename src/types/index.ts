@@ -20,6 +20,7 @@ export interface User {
   phone?: string;
   permissions: string[];
   isActive?: boolean;
+  active?: boolean;
   createdAt?: string;
 }
 
@@ -329,6 +330,7 @@ export interface Invoice {
   customerId: string;
   customerName: string;
   vehiclePlate?: string;
+  vehicleInfo?: string;
   issueDate: string;
   dueDate: string;
   items: InvoiceItem[];
@@ -421,6 +423,8 @@ export interface AttendanceRecord {
   checkIn?: string;
   checkOut?: string;
   status: 'present' | 'absent' | 'late' | 'leave';
+  overtimeHours?: number;
+  delayMinutes?: number;
   notes?: string;
 }
 
@@ -445,12 +449,17 @@ export interface PayrollRecord {
   employeeName: string;
   jobTitle: string;
   basicSalary: number;
+  attendedDays?: number;
+  totalWorkingDays?: number;
   allowances: number;
+  overtimeHours?: number;
+  overtimePay?: number;
   deductions: number;
   netSalary: number;
   status: 'draft' | 'approved' | 'paid';
   paidDate?: string;
   paymentMethod?: string;
+  notes?: string;
 }
 
 export interface AuditLog {

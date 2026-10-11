@@ -10,6 +10,7 @@ import {
   Plus,
   FileCheck,
   FileSpreadsheet,
+  Trash2,
 } from 'lucide-react';
 
 const SYSTEM_CHECKLIST_TEMPLATE = [
@@ -29,11 +30,12 @@ const SYSTEM_CHECKLIST_TEMPLATE = [
 ];
 
 export const InspectionsView: React.FC = () => {
-  const { state, createInspection, convertInspectionToEstimate, setActiveTab, theme, t } = useApp();
+  const { state, createInspection, convertInspectionToEstimate, deleteInspection, setActiveTab, theme, t } = useApp();
 
   const [selectedInspection, setSelectedInspection] = useState<Inspection | null>(
     state.inspections[0] || null
   );
+  const [inspectionToDelete, setInspectionToDelete] = useState<Inspection | null>(null);
 
   const [isCreating, setIsCreating] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState('');
@@ -415,14 +417,23 @@ export const InspectionsView: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Export to Estimate Button */}
-                <button
-                  onClick={() => handleExportToEstimate(selectedInspection.id)}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md shadow-blue-600/30"
-                >
-                  <FileCheck className="w-4 h-4" />
-                  <span>تصدير النتائج لعرض سعر (مقايسة)</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleExportToEstimate(selectedInspection.id)}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md shadow-blue-600/30"
+                  >
+                    <FileCheck className="w-4 h-4" />
+                    <span>تصدير لمقايسة</span>
+                  </button>
+
+                  <button
+                    onClick={() => setInspectionToDelete(selectedInspection)}
+                    title="حذف تقرير الفحص"
+                    className="p-2 text-rose-400 hover:text-rose-200 hover:bg-rose-950/40 rounded-xl transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {/* Summary note */}
@@ -485,6 +496,52 @@ export const InspectionsView: React.FC = () => {
           )}
         </div>
       </div>
+      {/* Delete Confirmation Modal */}
+      {inspectionToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4" dir="rtl">
+          <div className={`w-full max-w-md rounded-2xl border p-6 shadow-2xl space-y-4 ${
+            isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="w-12 h-12 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto border border-rose-500/30">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="font-bold text-base">تأكيد حذف تقرير الفحص</h3>
+              <p className="text-xs text-slate-400">
+                هل أنت متأكد من حذف تقرير الفحص رقم{' '}
+                <span className="font-bold text-white font-mono">
+                  "{inspectionToDelete.inspectionNumber}"
+                </span>؟
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setInspectionToDelete(null)}
+                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                إلغاء التراجع
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteInspection(inspectionToDelete.id);
+                  if (selectedInspection?.id === inspectionToDelete.id) {
+                    const remaining = state.inspections.filter((i) => i.id !== inspectionToDelete.id);
+                    setSelectedInspection(remaining[0] || null);
+                  }
+                  setInspectionToDelete(null);
+                }}
+                className="px-5 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-md transition-all cursor-pointer"
+              >
+                تأكيد الحذف
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

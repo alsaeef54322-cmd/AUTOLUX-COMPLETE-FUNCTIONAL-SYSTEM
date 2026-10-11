@@ -34,7 +34,7 @@ export const DashboardView: React.FC = () => {
 
   // Active Employees and Users
   const activeEmployeesCount = state.employees.filter((e) => e.status === 'active').length;
-  const activeUsersCount = state.users.filter((u) => u.active !== false).length;
+  const activeUsersCount = state.users.filter((u) => (u.active !== undefined ? u.active : u.isActive) !== false).length;
 
   // Financial calculations
   const totalInvoicedRevenue = state.invoices

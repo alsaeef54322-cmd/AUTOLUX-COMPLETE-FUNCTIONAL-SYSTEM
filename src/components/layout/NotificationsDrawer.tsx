@@ -10,7 +10,6 @@ export const NotificationsDrawer: React.FC = () => {
     markNotificationRead,
     markAllNotificationsRead,
     setActiveTab,
-    language,
     t,
   } = useApp();
 
@@ -94,14 +93,14 @@ export const NotificationsDrawer: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
-                        {language === 'ar' ? item.titleAr : item.title}
+                        {item.titleAr || item.title}
                       </span>
                       <span className="text-[11px] text-slate-400 whitespace-nowrap tabular-nums">
                         {item.timestamp.slice(11)}
                       </span>
                     </div>
                     <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
-                      {language === 'ar' ? item.messageAr : item.message}
+                      {item.messageAr || item.message}
                     </p>
                   </div>
                 </div>

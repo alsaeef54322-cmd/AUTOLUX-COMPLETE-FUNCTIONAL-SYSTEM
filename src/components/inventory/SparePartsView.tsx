@@ -13,6 +13,7 @@ import {
   FileSpreadsheet,
   Printer,
   Boxes,
+  Trash2,
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -27,13 +28,14 @@ const CATEGORIES = [
 ];
 
 export const SparePartsView: React.FC = () => {
-  const { state, createSparePart, updateSparePart, theme, t } = useApp();
+  const { state, createSparePart, updateSparePart, deleteSparePart, theme, t } = useApp();
 
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedPart, setSelectedPart] = useState<SparePart | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPart, setEditingPart] = useState<SparePart | null>(null);
+  const [partToDelete, setPartToDelete] = useState<SparePart | null>(null);
 
   // Form states
   const [sku, setSku] = useState('');
@@ -336,6 +338,13 @@ export const SparePartsView: React.FC = () => {
                           >
                             عرض
                           </button>
+                          <button
+                            onClick={() => setPartToDelete(part)}
+                            title="حذف الصنف"
+                            className="p-1.5 text-rose-400 hover:text-rose-200 hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -365,12 +374,21 @@ export const SparePartsView: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setSelectedPart(null)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setPartToDelete(selectedPart)}
+                  title="حذف الصنف"
+                  className="p-1.5 text-rose-400 hover:text-rose-200 hover:bg-rose-950/40 rounded-lg cursor-pointer transition-colors"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setSelectedPart(null)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             <div className="p-5 space-y-5 text-xs">
@@ -612,6 +630,52 @@ export const SparePartsView: React.FC = () => {
               </button>
             </div>
           </form>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {partToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4" dir="rtl">
+          <div className={`w-full max-w-md rounded-2xl border p-6 shadow-2xl space-y-4 ${
+            isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="w-12 h-12 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto border border-rose-500/30">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="font-bold text-base">تأكيد حذف قطعة الغيار</h3>
+              <p className="text-xs text-slate-400">
+                هل أنت متأكد من حذف الصنف{' '}
+                <span className="font-bold text-white">
+                  "{partToDelete.nameAr || partToDelete.name}"
+                </span>{' '}
+                كود (<span className="font-mono text-amber-400">{partToDelete.sku}</span>)؟
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setPartToDelete(null)}
+                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                إلغاء التراجع
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteSparePart(partToDelete.id);
+                  if (selectedPart?.id === partToDelete.id) {
+                    setSelectedPart(null);
+                  }
+                  setPartToDelete(null);
+                }}
+                className="px-5 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-md transition-all cursor-pointer"
+              >
+                تأكيد الحذف
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -32,6 +32,8 @@ import {
   VehicleSale,
   VehiclePurchase,
   VehicleRental,
+  AttendanceRecord,
+  PayrollRecord,
 } from '../types';
 import { translationsEn, translationsAr, Translations } from '../i18n/translations';
 
@@ -109,11 +111,11 @@ interface AppContextType {
 
   createCustomer: (data: Omit<Customer, 'id' | 'customerNumber' | 'balance' | 'createdAt'>) => Customer;
   updateCustomer: (customer: Customer) => void;
-  deleteCustomer: (id: string) => Promise<{ success: boolean; error?: string }>;
+  deleteCustomer: (id: string) => { success: boolean; error?: string };
   createVehicle: (data: Omit<Vehicle, 'id'>) => Vehicle;
   updateVehicle: (vehicle: Vehicle) => void;
-  deleteVehicle: (id: string) => Promise<{ success: boolean; error?: string }>;
-  deleteServiceOrder: (id: string) => Promise<{ success: boolean; error?: string }>;
+  deleteVehicle: (id: string) => { success: boolean; error?: string };
+  deleteServiceOrder: (id: string) => { success: boolean; error?: string };
 
   createSale: (data: Omit<VehicleSale, 'id' | 'saleNumber'>) => VehicleSale;
   updateSale: (sale: VehicleSale) => void;
@@ -129,8 +131,25 @@ interface AppContextType {
 
   createSparePart: (data: Omit<SparePart, 'id'>) => SparePart;
   updateSparePart: (part: SparePart) => void;
+  deleteSparePart: (id: string) => { success: boolean; error?: string };
+  deleteExpense: (id: string) => { success: boolean; error?: string };
+  deleteSupplier: (id: string) => { success: boolean; error?: string };
+  deletePurchaseOrder: (id: string) => { success: boolean; error?: string };
+  deleteEstimate: (id: string) => { success: boolean; error?: string };
+  deleteInspection: (id: string) => { success: boolean; error?: string };
 
   toggleCheckIn: (employeeId: string) => void;
+  setAttendanceStatus: (data: {
+    employeeId: string;
+    date: string;
+    status: 'present' | 'absent' | 'late' | 'leave';
+    checkIn?: string;
+    checkOut?: string;
+    overtimeHours?: number;
+    delayMinutes?: number;
+    notes?: string;
+  }) => void;
+  savePayrollRecord: (record: PayrollRecord) => void;
   approveLeaveRequest: (requestId: string) => void;
 
   updateSettings: (settings: Partial<BusinessSettings>) => void;
@@ -1397,6 +1416,72 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  const setAttendanceStatus = (data: {
+    employeeId: string;
+    date: string;
+    status: 'present' | 'absent' | 'late' | 'leave';
+    checkIn?: string;
+    checkOut?: string;
+    overtimeHours?: number;
+    delayMinutes?: number;
+    notes?: string;
+  }) => {
+    setState((prev) => {
+      const emp = prev.employees.find((e) => e.id === data.employeeId);
+      const existingIdx = prev.attendance.findIndex(
+        (a) => a.employeeId === data.employeeId && a.date === data.date
+      );
+
+      const defaultCheckIn = data.status === 'present' ? '08:30' : data.status === 'late' ? '09:15' : undefined;
+      const defaultCheckOut = (data.status === 'present' || data.status === 'late') ? '17:30' : undefined;
+
+      const newRecord: AttendanceRecord = {
+        id: existingIdx >= 0 ? prev.attendance[existingIdx].id : `att-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        employeeId: data.employeeId,
+        employeeName: emp ? (emp.nameAr || emp.name) : 'Staff',
+        date: data.date,
+        status: data.status,
+        checkIn: data.checkIn ?? defaultCheckIn,
+        checkOut: data.checkOut ?? defaultCheckOut,
+        overtimeHours: data.overtimeHours || 0,
+        delayMinutes: data.delayMinutes || (data.status === 'late' ? 30 : 0),
+        notes: data.notes || '',
+      };
+
+      const updated = [...prev.attendance];
+      if (existingIdx >= 0) {
+        updated[existingIdx] = newRecord;
+      } else {
+        updated.unshift(newRecord);
+      }
+
+      return {
+        ...prev,
+        attendance: updated,
+      };
+    });
+  };
+
+  const savePayrollRecord = (record: PayrollRecord) => {
+    setState((prev) => {
+      const existingIdx = prev.payrollRecords.findIndex(
+        (p) => p.id === record.id || (p.employeeId === record.employeeId && p.payrollMonth === record.payrollMonth)
+      );
+
+      const updated = [...prev.payrollRecords];
+      if (existingIdx >= 0) {
+        updated[existingIdx] = { ...updated[existingIdx], ...record };
+      } else {
+        updated.unshift({ ...record, id: record.id || `pr-${Date.now()}` });
+      }
+
+      return {
+        ...prev,
+        payrollRecords: updated,
+      };
+    });
+  };
+
   const approveLeaveRequest = (requestId: string) => {
     setState((prev) => ({
       ...prev,
@@ -1432,76 +1517,184 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setState(fresh);
   };
 
-  const deleteCustomer = async (id: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const res = await fetch(`/api/customers/${id}`, {
-        method: 'DELETE',
-        headers: { 'x-user-role': state.currentUser.role, 'x-user-id': state.currentUser.id },
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        return { success: false, error: data.error?.message || 'Failed to delete customer' };
-      }
-      setState((prev) => ({
-        ...prev,
-        customers: prev.customers.filter((c) => c.id !== id),
-      }));
-      return { success: true };
-    } catch {
-      setState((prev) => ({
-        ...prev,
-        customers: prev.customers.filter((c) => c.id !== id),
-      }));
-      return { success: true };
-    }
+  const deleteCustomer = (id: string): { success: boolean; error?: string } => {
+    const target = state.customers.find((c) => c.id === id);
+    if (!target) return { success: false, error: 'العميل غير موجود' };
+    setState((prev) => ({
+      ...prev,
+      customers: prev.customers.filter((c) => c.id !== id),
+      auditLogs: [
+        createAuditEntry(
+          prev.currentUser,
+          'DELETE_CUSTOMER',
+          'customers',
+          id,
+          `تم حذف العميل: ${target.nameAr || target.name}`
+        ),
+        ...prev.auditLogs,
+      ],
+    }));
+    return { success: true };
   };
 
-  const deleteVehicle = async (id: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const res = await fetch(`/api/vehicles/${id}`, {
-        method: 'DELETE',
-        headers: { 'x-user-role': state.currentUser.role, 'x-user-id': state.currentUser.id },
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        return { success: false, error: data.error?.message || 'Failed to delete vehicle' };
-      }
-      setState((prev) => ({
-        ...prev,
-        vehicles: prev.vehicles.filter((v) => v.id !== id),
-      }));
-      return { success: true };
-    } catch {
-      setState((prev) => ({
-        ...prev,
-        vehicles: prev.vehicles.filter((v) => v.id !== id),
-      }));
-      return { success: true };
-    }
+  const deleteVehicle = (id: string): { success: boolean; error?: string } => {
+    const target = state.vehicles.find((v) => v.id === id);
+    if (!target) return { success: false, error: 'المركبة غير موجودة' };
+    setState((prev) => ({
+      ...prev,
+      vehicles: prev.vehicles.filter((v) => v.id !== id),
+      auditLogs: [
+        createAuditEntry(
+          prev.currentUser,
+          'DELETE_VEHICLE',
+          'vehicles',
+          id,
+          `تم حذف المركبة: ${target.make} ${target.model} (${target.plateNumber})`
+        ),
+        ...prev.auditLogs,
+      ],
+    }));
+    return { success: true };
   };
 
-  const deleteServiceOrder = async (id: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const res = await fetch(`/api/service-orders/${id}`, {
-        method: 'DELETE',
-        headers: { 'x-user-role': state.currentUser.role, 'x-user-id': state.currentUser.id },
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        return { success: false, error: data.error?.message || 'Failed to delete work order' };
-      }
-      setState((prev) => ({
-        ...prev,
-        serviceOrders: prev.serviceOrders.filter((o) => o.id !== id),
-      }));
-      return { success: true };
-    } catch {
-      setState((prev) => ({
-        ...prev,
-        serviceOrders: prev.serviceOrders.filter((o) => o.id !== id),
-      }));
-      return { success: true };
-    }
+  const deleteServiceOrder = (id: string): { success: boolean; error?: string } => {
+    const target = state.serviceOrders.find((o) => o.id === id);
+    if (!target) return { success: false, error: 'أمر الشغل غير موجود' };
+    setState((prev) => ({
+      ...prev,
+      serviceOrders: prev.serviceOrders.filter((o) => o.id !== id),
+      auditLogs: [
+        createAuditEntry(
+          prev.currentUser,
+          'DELETE_SERVICE_ORDER',
+          'serviceOrders',
+          id,
+          `تم حذف أمر الشغل رقم: ${target.orderNumber}`
+        ),
+        ...prev.auditLogs,
+      ],
+    }));
+    return { success: true };
+  };
+
+  const deleteSparePart = (id: string): { success: boolean; error?: string } => {
+    const target = state.spareParts.find((p) => p.id === id);
+    if (!target) return { success: false, error: 'قطعة الغيار غير موجودة' };
+    setState((prev) => ({
+      ...prev,
+      spareParts: prev.spareParts.filter((p) => p.id !== id),
+      auditLogs: [
+        createAuditEntry(
+          prev.currentUser,
+          'DELETE_SPARE_PART',
+          'inventory',
+          id,
+          `تم حذف قطعة الغيار: ${target.nameAr || target.name}`
+        ),
+        ...prev.auditLogs,
+      ],
+    }));
+    return { success: true };
+  };
+
+  const deleteExpense = (id: string): { success: boolean; error?: string } => {
+    const target = state.expenses.find((e) => e.id === id);
+    if (!target) return { success: false, error: 'إذن الصرف غير موجود' };
+    setState((prev) => ({
+      ...prev,
+      expenses: prev.expenses.filter((e) => e.id !== id),
+      auditLogs: [
+        createAuditEntry(
+          prev.currentUser,
+          'DELETE_EXPENSE',
+          'finance',
+          id,
+          `تم حذف إذن الصرف رقم: ${target.expenseNumber}`
+        ),
+        ...prev.auditLogs,
+      ],
+    }));
+    return { success: true };
+  };
+
+  const deleteSupplier = (id: string): { success: boolean; error?: string } => {
+    const target = state.suppliers.find((s) => s.id === id);
+    if (!target) return { success: false, error: 'المورد غير موجود' };
+    setState((prev) => ({
+      ...prev,
+      suppliers: prev.suppliers.filter((s) => s.id !== id),
+      auditLogs: [
+        createAuditEntry(
+          prev.currentUser,
+          'DELETE_SUPPLIER',
+          'inventory',
+          id,
+          `تم حذف المورد: ${target.name}`
+        ),
+        ...prev.auditLogs,
+      ],
+    }));
+    return { success: true };
+  };
+
+  const deletePurchaseOrder = (id: string): { success: boolean; error?: string } => {
+    const target = state.purchaseOrders.find((po) => po.id === id);
+    if (!target) return { success: false, error: 'أمر الشراء غير موجود' };
+    setState((prev) => ({
+      ...prev,
+      purchaseOrders: prev.purchaseOrders.filter((po) => po.id !== id),
+      auditLogs: [
+        createAuditEntry(
+          prev.currentUser,
+          'DELETE_PURCHASE_ORDER',
+          'inventory',
+          id,
+          `تم حذف أمر الشراء: ${target.poNumber}`
+        ),
+        ...prev.auditLogs,
+      ],
+    }));
+    return { success: true };
+  };
+
+  const deleteEstimate = (id: string): { success: boolean; error?: string } => {
+    const target = state.estimates.find((e) => e.id === id);
+    if (!target) return { success: false, error: 'المقايسة غير موجودة' };
+    setState((prev) => ({
+      ...prev,
+      estimates: prev.estimates.filter((e) => e.id !== id),
+      auditLogs: [
+        createAuditEntry(
+          prev.currentUser,
+          'DELETE_ESTIMATE',
+          'estimates',
+          id,
+          `تم حذف المقايسة رقم: ${target.estimateNumber}`
+        ),
+        ...prev.auditLogs,
+      ],
+    }));
+    return { success: true };
+  };
+
+  const deleteInspection = (id: string): { success: boolean; error?: string } => {
+    const target = state.inspections.find((i) => i.id === id);
+    if (!target) return { success: false, error: 'تقرير الفحص غير موجود' };
+    setState((prev) => ({
+      ...prev,
+      inspections: prev.inspections.filter((i) => i.id !== id),
+      auditLogs: [
+        createAuditEntry(
+          prev.currentUser,
+          'DELETE_INSPECTION',
+          'inspections',
+          id,
+          `تم حذف تقرير الفحص رقم: ${target.inspectionNumber}`
+        ),
+        ...prev.auditLogs,
+      ],
+    }));
+    return { success: true };
   };
 
   const createSale = (data: Omit<VehicleSale, 'id' | 'saleNumber'>): VehicleSale => {
@@ -1725,7 +1918,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         createSparePart,
         updateSparePart,
+        deleteSparePart,
+        deleteExpense,
+        deleteSupplier,
+        deletePurchaseOrder,
+        deleteEstimate,
+        deleteInspection,
         toggleCheckIn,
+        setAttendanceStatus,
+        savePayrollRecord,
         approveLeaveRequest,
         updateSettings,
         markNotificationRead,

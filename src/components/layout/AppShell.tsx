@@ -29,7 +29,6 @@ import {
   Bell,
   Sun,
   Moon,
-  Globe,
   Menu,
   X,
   Wrench,
@@ -57,7 +56,6 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const {
     state,
     t,
-    language,
     theme,
     setTheme,
     activeTab,
@@ -183,7 +181,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
       'dashboard', 'reception', 'service_orders', 'customers', 'vehicles', 'invoices', 'payments',
     ],
     accountant: [
-      'dashboard', 'invoices', 'payments', 'cash_management', 'expenses', 'financial_reports', 'suppliers', 'purchase_orders',
+      'dashboard', 'invoices', 'payments', 'cash_management', 'expenses', 'financial_reports', 'suppliers', 'purchase_orders', 'payroll', 'attendance',
     ],
     inventory_officer: [
       'dashboard', 'spare_parts', 'stock_movements', 'suppliers', 'purchase_orders',

@@ -7,41 +7,85 @@ export interface ExportColumn<T> {
   key: keyof T | ((item: T) => any);
 }
 
-export function exportToCSV<T>(filename: string, columns: ExportColumn<T>[], data: T[]) {
-  if (!data || data.length === 0) {
-    alert('No data available to export.');
-    return;
+export function exportToCSV<T extends Record<string, any>>(
+  filename: string,
+  columns: ExportColumn<T>[],
+  data: T[]
+): void;
+export function exportToCSV<T extends Record<string, any>>(
+  data: T[],
+  filename: string
+): void;
+export function exportToCSV<T extends Record<string, any>>(
+  arg1: string | T[],
+  arg2?: string | ExportColumn<T>[],
+  arg3?: T[]
+): void {
+  let filename = 'export';
+  let rowsFormatted: string[] = [];
+  let headerRow = '';
+
+  if (Array.isArray(arg1)) {
+    // Called as: exportToCSV(data, filename)
+    const data = arg1;
+    filename = typeof arg2 === 'string' ? arg2 : 'export';
+    if (!data || data.length === 0) {
+      console.warn('No data available to export.');
+      return;
+    }
+    const headers = Object.keys(data[0]);
+    headerRow = headers.map((h) => `"${escapeCSV(h)}"`).join(',');
+    rowsFormatted = data.map((item) =>
+      headers
+        .map((h) => {
+          let val = item[h];
+          if (val === null || val === undefined) {
+            val = '';
+          } else if (typeof val === 'object') {
+            val = JSON.stringify(val);
+          } else {
+            val = String(val);
+          }
+          return `"${escapeCSV(val)}"`;
+        })
+        .join(',')
+    );
+  } else {
+    // Called as: exportToCSV(filename, columns, data)
+    filename = arg1;
+    const columns = (arg2 as ExportColumn<T>[]) || [];
+    const data = arg3 || [];
+    if (!data || data.length === 0) {
+      console.warn('No data available to export.');
+      return;
+    }
+    headerRow = columns.map((col) => `"${escapeCSV(col.header)}"`).join(',');
+    rowsFormatted = data.map((item) =>
+      columns
+        .map((col) => {
+          let val: any;
+          if (typeof col.key === 'function') {
+            val = col.key(item);
+          } else {
+            val = item[col.key];
+          }
+
+          if (val === null || val === undefined) {
+            val = '';
+          } else if (typeof val === 'object') {
+            val = JSON.stringify(val);
+          } else {
+            val = String(val);
+          }
+
+          return `"${escapeCSV(val)}"`;
+        })
+        .join(',')
+    );
   }
 
-  // Format headers
-  const headerRow = columns.map((col) => `"${escapeCSV(col.header)}"`).join(',');
-
-  // Format rows
-  const rows = data.map((item) =>
-    columns
-      .map((col) => {
-        let val: any;
-        if (typeof col.key === 'function') {
-          val = col.key(item);
-        } else {
-          val = item[col.key];
-        }
-
-        if (val === null || val === undefined) {
-          val = '';
-        } else if (typeof val === 'object') {
-          val = JSON.stringify(val);
-        } else {
-          val = String(val);
-        }
-
-        return `"${escapeCSV(val)}"`;
-      })
-      .join(',')
-  );
-
   // Prepend UTF-8 Byte Order Mark (BOM) so Excel reads Arabic & special characters properly
-  const csvContent = '\uFEFF' + [headerRow, ...rows].join('\r\n');
+  const csvContent = '\uFEFF' + [headerRow, ...rowsFormatted].join('\r\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');

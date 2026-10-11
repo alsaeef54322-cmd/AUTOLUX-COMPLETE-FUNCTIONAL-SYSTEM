@@ -9,14 +9,17 @@ import {
   FileSpreadsheet,
   Receipt,
   Printer,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 
 export const EstimatesView: React.FC = () => {
-  const { state, approveEstimate, convertEstimateToInvoice, setActiveTab, printDocument, theme, t } = useApp();
+  const { state, approveEstimate, convertEstimateToInvoice, deleteEstimate, setActiveTab, printDocument, theme, t } = useApp();
 
   const [selectedEstimate, setSelectedEstimate] = useState<Estimate | null>(
     state.estimates[0] || null
   );
+  const [estimateToDelete, setEstimateToDelete] = useState<Estimate | null>(null);
   const [filter, setFilter] = useState<'all' | 'draft' | 'sent' | 'approved' | 'rejected'>('all');
   const isDark = theme === 'dark';
 
@@ -224,6 +227,14 @@ export const EstimatesView: React.FC = () => {
                       <span>تحويل لفاتورة ضريبية</span>
                     </button>
                   )}
+
+                  <button
+                    onClick={() => setEstimateToDelete(selectedEstimate)}
+                    title="حذف المقايسة"
+                    className="p-2 text-rose-400 hover:text-rose-200 hover:bg-rose-950/40 rounded-xl transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
@@ -316,6 +327,52 @@ export const EstimatesView: React.FC = () => {
           )}
         </div>
       </div>
+      {/* Delete Confirmation Modal */}
+      {estimateToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4" dir="rtl">
+          <div className={`w-full max-w-md rounded-2xl border p-6 shadow-2xl space-y-4 ${
+            isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="w-12 h-12 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto border border-rose-500/30">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="font-bold text-base">تأكيد حذف المقايسة</h3>
+              <p className="text-xs text-slate-400">
+                هل أنت متأكد من حذف المقايسة رقم{' '}
+                <span className="font-bold text-white font-mono">
+                  "{estimateToDelete.estimateNumber}"
+                </span>؟
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setEstimateToDelete(null)}
+                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                إلغاء التراجع
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteEstimate(estimateToDelete.id);
+                  if (selectedEstimate?.id === estimateToDelete.id) {
+                    const remaining = state.estimates.filter((e) => e.id !== estimateToDelete.id);
+                    setSelectedEstimate(remaining[0] || null);
+                  }
+                  setEstimateToDelete(null);
+                }}
+                className="px-5 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-md transition-all cursor-pointer"
+              >
+                تأكيد الحذف
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

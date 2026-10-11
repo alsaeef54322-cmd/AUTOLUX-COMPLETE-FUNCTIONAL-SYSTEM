@@ -6,7 +6,6 @@ import {
   Save,
   RotateCcw,
   CheckCircle2,
-  HardDrive,
   ShieldCheck,
   AlertTriangle,
   Sun,
@@ -62,7 +61,7 @@ export const SettingsView: React.FC = () => {
             <span>إعدادات النظام والمركز</span>
           </h2>
           <p className="text-xs md:text-sm text-slate-400 mt-1">
-            بيانات مركز صيانة التجمع الخامس، السجل التجاري والبطاقة الضريبية، وحالة الحفظ التلقائي
+            بيانات مركز صيانة التجمع الخامس، السجل التجاري، البطاقة الضريبية، المظهر والفواتير
           </p>
         </div>
 
@@ -289,28 +288,33 @@ export const SettingsView: React.FC = () => {
             </div>
           </div>
 
-          {/* LocalStorage persistence card */}
+          {/* Official Invoices & Documentation Settings card */}
           <div className={`border rounded-2xl p-5 md:p-6 space-y-4 text-xs ${
             isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200 shadow-xs'
           }`}>
             <h3 className={`font-bold text-sm flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              <HardDrive className="w-4 h-4 text-emerald-400" />
-              <span>نظام التخزين المحلي السحابي</span>
+              <FileText className="w-4 h-4 text-blue-500" />
+              <span>إعدادات الفواتير والمطبوعات الرسمية</span>
             </h3>
 
-            <div className={`p-4 rounded-xl border space-y-2.5 ${
+            <div className={`p-4 rounded-xl border space-y-3 ${
               isDark ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-50 border-slate-200'
             }`}>
-              <div className="flex items-center gap-2 text-emerald-400 font-semibold">
-                <ShieldCheck className="w-4 h-4 shrink-0" />
-                <span>حفظ تلقائي وفوري ومحمي</span>
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800/40">
+                <span className="text-slate-400">العملة الافتراضية للمعاملات:</span>
+                <span className="font-bold text-blue-400 font-mono">{state.settings.currency || 'ج.م'} (جنيه مصري)</span>
               </div>
-              <p className="text-slate-400 text-xs leading-relaxed">
-                يتم حفظ وإدارة كافة السجلات (المستخدمين، الموظفين، المركبات، العملاء، الفواتير، وقطع الغيار) محلياً وبشكل تلقائي في متصفحك عبر التخزين المحلي <span className="font-mono text-blue-400">LocalStorage</span> مع مزامنة آنية. لن تفقد أي بيانات قمت بإدخالها بعد تحديث الصفحة أو إغلاق المتصفح.
-              </p>
-              <div className="pt-2 text-[11px] text-slate-500 flex items-center justify-between">
-                <span>حالة الحفظ: متصل ونشط</span>
-                <span className="font-mono text-emerald-400">100% محلي وتلقائي</span>
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800/40">
+                <span className="text-slate-400">بادئة الفواتير الضريبية:</span>
+                <span className="font-bold font-mono text-emerald-400">{state.settings.invoicePrefix || 'INV-2026-'}</span>
+              </div>
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800/40">
+                <span className="text-slate-400">بادئة كروت وأوامر الشغل:</span>
+                <span className="font-bold font-mono text-amber-400">{state.settings.workOrderPrefix || 'WO-2026-'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">المنطقة الزمنية:</span>
+                <span className="font-mono text-slate-300">توقيت القاهرة (GMT+2)</span>
               </div>
             </div>
           </div>

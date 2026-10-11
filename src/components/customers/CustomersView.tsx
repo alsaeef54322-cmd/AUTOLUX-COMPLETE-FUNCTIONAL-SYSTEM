@@ -349,8 +349,16 @@ export const CustomersView: React.FC = () => {
                 <button
                   onClick={() => openEditModal(selectedCustomer)}
                   className={`p-1.5 rounded-lg transition-colors ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
+                  title="تعديل"
                 >
                   <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setCustomerToDelete(selectedCustomer)}
+                  className="p-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
+                  title="حذف العميل"
+                >
+                  <Trash2 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setSelectedCustomer(null)}

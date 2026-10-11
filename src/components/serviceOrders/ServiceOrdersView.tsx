@@ -17,6 +17,7 @@ import {
   Receipt,
   CheckCircle,
   AlertTriangle,
+  Trash2,
 } from 'lucide-react';
 
 const STATUS_OPTIONS: { id: ServiceOrderStatus | 'all'; label: string }[] = [
@@ -40,6 +41,7 @@ export const ServiceOrdersView: React.FC = () => {
     addLaborItem,
     issuePartToOrder,
     createInvoice,
+    deleteServiceOrder,
     setActiveTab,
     printDocument,
     theme,
@@ -49,6 +51,7 @@ export const ServiceOrdersView: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<ServiceOrderStatus | 'all'>('all');
   const [search, setSearch] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<ServiceOrder | null>(null);
+  const [orderToDelete, setOrderToDelete] = useState<ServiceOrder | null>(null);
 
   // Modal forms inside detail
   const [isAddingLabor, setIsAddingLabor] = useState(false);
@@ -377,6 +380,13 @@ export const ServiceOrdersView: React.FC = () => {
                           >
                             عرض
                           </button>
+                          <button
+                            onClick={() => setOrderToDelete(order)}
+                            title="حذف بطاقة العمل"
+                            className="p-1.5 text-rose-400 hover:text-rose-200 hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -412,12 +422,21 @@ export const ServiceOrdersView: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setOrderToDelete(selectedOrder)}
+                  title="حذف بطاقة العمل"
+                  className="p-1.5 text-rose-400 hover:text-rose-200 hover:bg-rose-950/40 rounded-lg cursor-pointer transition-colors"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Scrollable Content */}
@@ -835,6 +854,51 @@ export const ServiceOrdersView: React.FC = () => {
                 }`}
               >
                 إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {orderToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4" dir="rtl">
+          <div className={`w-full max-w-md rounded-2xl border p-6 shadow-2xl space-y-4 ${
+            isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="w-12 h-12 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto border border-rose-500/30">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="font-bold text-base">تأكيد حذف أمر الشغل</h3>
+              <p className="text-xs text-slate-400">
+                هل أنت متأكد من حذف بطاقة العمل رقم{' '}
+                <span className="font-bold text-white font-mono">
+                  "{orderToDelete.orderNumber}"
+                </span>؟
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setOrderToDelete(null)}
+                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                إلغاء التراجع
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteServiceOrder(orderToDelete.id);
+                  if (selectedOrder?.id === orderToDelete.id) {
+                    setSelectedOrder(null);
+                  }
+                  setOrderToDelete(null);
+                }}
+                className="px-5 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-md transition-all cursor-pointer"
+              >
+                تأكيد الحذف
               </button>
             </div>
           </div>
